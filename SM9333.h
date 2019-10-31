@@ -5,30 +5,61 @@
 #define P_MIN -125
 #define P_MAX 125
 
+#define SM9333_UNPROTECTED 0x6C
+#define SM9333_CRC_PROTECTED 0x6D
+
 class SM9333
 {
 public:
+    // consructor
     SM9333();
+
+    // connect the chip & sets self.address
+    // Wiring must be correct and board must be connected.
+    // Returns if connect was successful
     bool connect();
-    bool is_valid();
-    double read_pressure();
-    double read_temperature();
+
+    // checks if the chip is connected
+    bool isConnected();
+
+    // Returns a pressure reading
+    double readPressure();
+
+    // Returns a temperature reading
+    double readTemperature();
+
+    struct pressureTemperaturePair {
+        double pressure;
+        double temperature;
+    }
+
+    struct commandSequence {
+        int* sequence;
+        int length;
+    }
+
+    // Returns pressure and temperature readings (they're always sent by the chip at the same time)
+    pressureTemperaturePair readBoth();
 
 private:
+    // the address of the instance/the physical chip
     int address;
 
-    double calculate_pressure(int pressure_low_byte, int pressure_high_byte);
-    double calculate_temperature(int temperature_low_byte, int temperature_high_byte);
-    bool next_read_ready();
-    void writer();
+    // using the low byte and high byte sent by the chip, calculates the Pressure using bitwise math and
+    // also the equation provided in the datasheet.
+    double calculatePressure(int pressureLowBit, int pressureHighBit);
 
+    // using the low Bit and high Bit sent by the chip, calculates the Temperature using bitwise math and
+    // also the equation provided in the datasheet.
+    double calculateTemperature(int temperatureLowBit, int temperatureHighBit);
+
+    // used to write a sequence of bits to the chip
+    void writer(commandSequence seq);
+
+    // requests a read from the chip of numBits number of bits, and with or without CRC protection
+    int* doRead(int numBits, bool crcProtected, int location);
 
 };
-
-
-
-
-
 
 
 #endif
