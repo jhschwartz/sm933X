@@ -2,25 +2,23 @@
 #include "SM9333.h"
 #include <Wire.h>
 
-SM9333:SM9333() {
-
-}
-
-bool SM9333::connect() {
-
+SM9333:SM9333(int multiplex_output) {
+    this.multiplex_output = multiplex_output;
+    assert this.isConnected();
 }
 
 bool SM9333::isConnected() {
-
+    // do an actual check that the address can be reached??
+    return true;
 }
 
 double SM9333::readPressure() {
-    pressureTemperaturePair pair = this.readBoth();
+    pressureTemperaturePair pair = readBoth();
     return pair.pressure;
 }
 
 double SM9333::readTemperature() {
-    pressureTemperaturePair pair = this.readBoth();
+    pressureTemperaturePair pair = readBoth();
     return pair.temperature;
 }
 
@@ -51,14 +49,13 @@ double SM9333::calcPressure(int pressureLowBit, int pressureHighBit) {
 
 double SM9333::calcTemperature(int temperatureLowBit, int temperatureHighBit) {
     int digital = temperatureLowBit | temperatureHighBit << 8;
-    const double b0 = -16881;
-    const double b1 = 397.2;
     double temp = (double(digital) - b0)/b1;
     return temp;
 }
 
 void SM9333::writer(commandSequence seq) {
-    Wire.beginTransmission(SM9333_CRC_UNPROTECTED);
+    this.multiplex_switch();
+    Wire.beginTransmission(address_unprotected);
     for (int i = 0; i < seq.length; i++) {
         Wire.write(byte(seq.sequence[i]));
     }
@@ -66,7 +63,8 @@ void SM9333::writer(commandSequence seq) {
 }
 
 int* SM9333::doRead(int numBits, bool crcProtected, int location) {
-    int crcLoc = crcProtected ? SM9333_CRC_PROTECTED : SM9333_UNPROTECTED;
+    this.multiplex_switch();
+    int crcLoc = crcProtected ? address_protected : address_unprotected;
     int command[3] = {location, 0x5B, 0xDB};
     commandSequence seq = {command, 3};
     writer(seq);
@@ -77,4 +75,10 @@ int* SM9333::doRead(int numBits, bool crcProtected, int location) {
         result[i] = Wire.read();
     }
     return result;
+}
+
+void SM9333::multiplex_switch() {
+    Wire.beginTransmission(0x70);
+    Wire.write(this.multiplex_output);
+    Wire.endTransmission();
 }
