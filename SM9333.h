@@ -10,11 +10,18 @@
 #define SM9333_UNPROTECTED 0x6C
 #define SM9333_CRC_PROTECTED 0x6D
 
+struct pressureTemperaturePair {
+        double pressure;
+        double temperature;
+};
+
 class SM9333
 {
 public:
     // consructor
     SM9333();
+
+    void set_multiplex(int multiplex_output);
 
     // connect the chip & sets self.address
     // Wiring must be correct and board must be connected.
@@ -30,15 +37,10 @@ public:
     // Returns a temperature reading
     double readTemperature();
 
-    struct pressureTemperaturePair {
-        double pressure;
-        double temperature;
-    }
-
     struct commandSequence {
         int* sequence;
         int length;
-    }
+    };
 
     // Returns pressure and temperature readings (they're always sent by the chip at the same time)
     pressureTemperaturePair readBoth();
@@ -51,9 +53,9 @@ private:
     // also the equation provided in the datasheet.
     double calculatePressure(int pressureLowBit, int pressureHighBit);
 
-    // using the low Bit and high Bit sent by the chip, calculates the Temperature using bitwise math and
+    // using the low Byte and high Byte sent by the chip, calculates the Temperature using bitwise math and
     // also the equation provided in the datasheet.
-    double calculateTemperature(int temperatureLowBit, int temperatureHighBit);
+    double calculateTemperature(int temperatureLowByte, int temperatureHighByte);
 
     // used to write a sequence of bits to the chip
     void writer(commandSequence seq);
